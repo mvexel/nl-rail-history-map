@@ -36,10 +36,10 @@ export async function loadGeoJSON(path: string): Promise<unknown> {
         }
 
         // Convert coordinates in features
-        if (data && typeof data === 'object' && 'features' in data && Array.isArray(data.features)) {
-            data.features.forEach((feature: unknown) => {
-                if (feature && typeof feature === 'object' && 'geometry' in feature && feature.geometry && typeof feature.geometry === 'object' && 'coordinates' in feature.geometry) {
-                    (feature.geometry as { coordinates: unknown }).coordinates = convertCoordinates((feature.geometry as { coordinates: unknown }).coordinates);
+        if (data && typeof data === 'object' && 'features' in data && Array.isArray((data as any).features)) {
+            (data as any).features.forEach((feature: any) => {
+                if (feature && feature.geometry && feature.geometry.coordinates) {
+                    feature.geometry.coordinates = convertCoordinates(feature.geometry.coordinates);
                 }
             });
         }

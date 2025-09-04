@@ -1,10 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { type FC, useState, useMemo, useEffect, useRef } from 'react'
+import { type FC, useState, useMemo } from 'react'
 import Map from 'react-map-gl/maplibre'
 import { Source, Layer } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { MAP_CONFIG, GEOJSON_LAYER_CONFIGS } from '../constants'
 import { useGeoJSON } from '../hooks'
+import { useTimeFilter } from '../hooks/useTimeFilter'
+import TimeSlider from './TimeSlider'
+import { RAILWAY_TIME_CONFIG } from '../config/timeConfigs'
 
 interface MapComponentProps {
     className?: string
@@ -13,100 +15,25 @@ interface MapComponentProps {
 const MapComponent: FC<MapComponentProps> = ({ className = "h-full w-full" }) => {
     const { data: geojsonData, loading, error } = useGeoJSON('/geo/historische_spoorwegen.json');
     const [mapLoaded, setMapLoaded] = useState(false);
-    const [currentTime, setCurrentTime] = useState(new Date('1860-01-01'));
-    const [isPlaying, setIsPlaying] = useState(false);
-    const animationRef = useRef<number | null>(null);
 
-    // Calculate min and max dates from the data
-    const { minDate, maxDate } = useMemo(() => {
-        if (!geojsonData || !(geojsonData as any).features) return { minDate: new Date('1900-01-01'), maxDate: new Date() };
+    const {
+        currentTime,
+        isPlaying,
+        minDate,
+        maxDate,
+        filteredData,
+        togglePlay,
+        handleTimeChange,
+        config
+    } = useTimeFilter((geojsonData as any)?.features, RAILWAY_TIME_CONFIG);
 
-        let min = new Date();
-        let max = new Date('1900-01-01');
+    const filteredGeoJSON = useMemo(() => ({
+        type: 'FeatureCollection',
+        features: filteredData || []
+    }), [filteredData]);
 
-        (geojsonData as any).features.forEach((feature: any) => {
-            const openingStr = feature.properties?.opening;
-            const stakingStr = feature.properties?.staking_personen_vervoer;
-
-            if (!openingStr) return;
-
-            const opening = new Date(openingStr);
-            if (isNaN(opening.getTime())) return;
-
-            const staking = stakingStr === '9999-12-31T01:00:00+01:00'
-                ? new Date()
-                : stakingStr ? new Date(stakingStr) : new Date();
-
-            if (isNaN(staking.getTime())) return;
-
-            if (opening < min) min = opening;
-            if (staking > max) max = staking;
-        });
-
-        return { minDate: min, maxDate: max };
-    }, [geojsonData]);
-
-    // Animation logic
-    useEffect(() => {
-        if (isPlaying) {
-            animationRef.current = setInterval(() => {
-                setCurrentTime(prevTime => {
-                    const nextTime = new Date(prevTime.getTime() + (365 * 24 * 60 * 60 * 1000)); // Advance by 1 year
-                    if (nextTime >= maxDate) {
-                        setIsPlaying(false);
-                        return maxDate;
-                    }
-                    return nextTime;
-                });
-            }, 200); // Update every 200ms for smooth animation
-        } else {
-            if (animationRef.current) {
-                clearInterval(animationRef.current);
-                animationRef.current = null;
-            }
-        }
-
-        return () => {
-            if (animationRef.current) {
-                clearInterval(animationRef.current);
-            }
-        };
-    }, [isPlaying, maxDate]);
-
-    const togglePlay = () => {
-        setIsPlaying(!isPlaying);
-    };
-
-    // Filter features based on current time
-    const filteredGeoJSON = useMemo(() => {
-        if (!geojsonData) return null;
-
-        const filteredFeatures = (geojsonData as any).features.filter((feature: any) => {
-            const openingStr = feature.properties?.opening;
-            const stakingStr = feature.properties?.staking_personen_vervoer;
-
-            if (!openingStr) return false;
-
-            const opening = new Date(openingStr);
-            if (isNaN(opening.getTime())) return false;
-
-            const staking = stakingStr === '9999-12-31T01:00:00+01:00'
-                ? new Date('2100-01-01')
-                : stakingStr ? new Date(stakingStr) : new Date('2100-01-01');
-
-            if (isNaN(staking.getTime())) return false;
-
-            return currentTime >= opening && currentTime <= staking;
-        });
-
-        return {
-            ...(geojsonData as any),
-            features: filteredFeatures
-        };
-    }, [geojsonData, currentTime]);
-
-    if (loading) return <div>Kaart laden...</div>;
-    if (error) return <div>Fout bij laden GeoJSON: {error.message}</div>;
+    if (loading) return <div>Loading...</div>;
+    if (error) return <div>Error: {error.message}</div>;
 
     return (
         <div className={`${className} relative`}>
@@ -115,61 +42,27 @@ const MapComponent: FC<MapComponentProps> = ({ className = "h-full w-full" }) =>
                 mapStyle={MAP_CONFIG.mapStyle}
                 onLoad={() => setMapLoaded(true)}
             >
-                {mapLoaded && filteredGeoJSON && (
-                    <Source id="geojson-source" type="geojson" data={filteredGeoJSON}>
+                {mapLoaded && (
+                    <Source
+                        id="geojson-source"
+                        type="geojson"
+                        data={filteredGeoJSON as any}
+                    >
                         <Layer {...GEOJSON_LAYER_CONFIGS.line} />
                     </Source>
                 )}
             </Map>
 
-            {/* Time Slider Overlay */}
-            <div className="absolute bottom-4 left-4 right-4 bg-white bg-opacity-95 p-4 rounded-lg shadow-lg border border-gray-200">
-                <div className="flex items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">Nederlandse spoorlijnen door de jaren heen</span>
-                    <span className="text-xs text-gray-500 ml-4">
-                        {minDate.getFullYear()} - {maxDate.getFullYear() === new Date().getFullYear() ? 'Heden' : maxDate.getFullYear()}
-                    </span>
-                </div>
-                <div className="flex items-center space-x-4">
-                    <span className="text-sm font-medium text-gray-700 min-w-[60px]">Jaar:</span>
-                    <input
-                        type="range"
-                        min={minDate.getTime()}
-                        max={maxDate.getTime()}
-                        value={currentTime.getTime()}
-                        onChange={(e) => {
-                            setCurrentTime(new Date(parseInt(e.target.value)));
-                            if (isPlaying) setIsPlaying(false); // Stop animation when manually adjusting
-                        }}
-                        className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
-                    />
-                    <button
-                        onClick={togglePlay}
-                        className={`flex items-center justify-center w-7 h-7 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors duration-200 shadow-md ${isPlaying ? 'playing-button' : ''}`}
-                        title={isPlaying ? "Animatie pauzeren" : "Animatie afspelen"}
-                    >
-                        {isPlaying ? (
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M6 4a1 1 0 00-1 1v10a1 1 0 001 1h1a1 1 0 001-1V5a1 1 0 00-1-1H6zM12 4a1 1 0 00-1 1v10a1 1 0 001 1h1a1 1 0 001-1V5a1 1 0 00-1-1h-1z" clipRule="evenodd" />
-                            </svg>
-                        ) : (
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M8 5.14v9.72a1 1 0 001.555.832l6-4.5a1 1 0 000-1.664l-6-4.5A1 1 0 008 5.14z" clipRule="evenodd" />
-                            </svg>
-                        )}
-                    </button>
-                    <span className="text-sm font-semibold text-blue-600 min-w-[80px]">
-                        {currentTime.getFullYear()}
-                    </span>
-                </div>
-                <div className="mt-2 text-xs text-gray-500">
-                    Je ziet {filteredGeoJSON?.features.length || 0} spoorlijnen die in gebruik waren op op {currentTime.toLocaleDateString('nl-NL', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    })}
-                </div>
-            </div>
+            <TimeSlider
+                currentTime={currentTime}
+                isPlaying={isPlaying}
+                minDate={minDate}
+                maxDate={maxDate}
+                itemCount={filteredData.length}
+                onTimeChange={handleTimeChange}
+                onTogglePlay={togglePlay}
+                config={config}
+            />
         </div>
     )
 }
