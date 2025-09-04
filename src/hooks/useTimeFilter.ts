@@ -1,6 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { Feature } from 'geojson';
 import { length } from '@turf/length';
+import { parseDate, isValidDate } from '../utils';
+import { ANIMATION_CONSTANTS } from '../constants';
 
 export interface TimeFieldConfig {
     startField: string;
@@ -13,7 +15,7 @@ export interface TimeSliderConfig {
     yearLabel: string;
     playTooltip: string;
     pauseTooltip: string;
-    statusTemplate: string; // Template string like "Toont {count} items actief op {date}"
+    statusTemplate: `${string}{count}${string}{date}${string}` | `${string}{count}${string}{date}${string}{length_km}${string}`;
     presentLabel: string;
     loadingText: string;
     errorText: string;
@@ -34,35 +36,28 @@ export function useTimeFilter(
 
     const { minDate, maxDate } = useMemo(() => {
         if (!data || !Array.isArray(data) || data.length === 0) {
-            return { minDate: new Date('1950-01-01'), maxDate: new Date() };
+            return { minDate: new Date('1850-01-01'), maxDate: new Date() };
         }
 
-        let min = new Date();
-        let max = new Date('1800-01-01');
+        const startDates = data
+            .map(item => parseDate(item.properties?.[options.fieldConfig.startField]))
+            .filter(Boolean);
 
-        data.forEach((item) => {
-            const startStr = item.properties?.[options.fieldConfig.startField];
-            if (startStr) {
-                const startDate = new Date(startStr);
-                if (!isNaN(startDate.getTime())) {
-                    if (startDate < min) {
-                        min = startDate;
-                    }
-                    if (startDate > max) {
-                        max = startDate;
-                    }
-                }
-            }
-        });
+        if (startDates.length === 0) {
+            return { minDate: new Date('1850-01-01'), maxDate: new Date() };
+        }
 
-        return { minDate: min, maxDate: max };
+        const minDate = new Date(Math.min(...startDates.map(d => d.getTime())));
+        const maxDate = new Date();
+
+        return { minDate, maxDate };
     }, [data, options.fieldConfig]);
 
     useEffect(() => {
         if (minDate && !currentTime) {
             setCurrentTime(minDate);
         }
-    }, [minDate]);
+    }, [minDate, currentTime]);
 
     // Use minDate as fallback for currentTime
     const effectiveCurrentTime = currentTime || minDate;
@@ -70,61 +65,68 @@ export function useTimeFilter(
     // Animation logic
     useEffect(() => {
         if (isPlaying && effectiveCurrentTime) {
-            animationRef.current = setInterval(() => {
-                setCurrentTime(prevTime => {
-                    const current = prevTime || minDate;
-                    const nextTime = new Date(current.getTime() + (365 * 24 * 60 * 60 * 1000));
-                    if (nextTime >= maxDate) {
-                        setIsPlaying(false);
-                        return maxDate;
-                    }
-                    return nextTime;
-                });
-            }, 200);
+            let lastTime = 0;
+            const animate = (timestamp: number) => {
+                if (timestamp - lastTime >= ANIMATION_CONSTANTS.FRAME_INTERVAL_MS) {
+                    setCurrentTime(prevTime => {
+                        const current = prevTime || minDate;
+                        const nextTime = new Date(current.getTime() + ANIMATION_CONSTANTS.YEAR_INCREMENT_MS);
+                        if (nextTime >= maxDate) {
+                            setIsPlaying(false);
+                            return maxDate;
+                        }
+                        return nextTime;
+                    });
+                    lastTime = timestamp;
+                }
+                if (isPlaying) {
+                    animationRef.current = requestAnimationFrame(animate);
+                }
+            };
+            animationRef.current = requestAnimationFrame(animate);
         } else {
             if (animationRef.current) {
-                clearInterval(animationRef.current);
+                cancelAnimationFrame(animationRef.current);
                 animationRef.current = null;
             }
         }
 
         return () => {
             if (animationRef.current) {
-                clearInterval(animationRef.current);
+                cancelAnimationFrame(animationRef.current);
             }
         };
     }, [isPlaying, maxDate, effectiveCurrentTime, minDate]);
 
-    const { filteredData, totalLength } = useMemo(() => {
+    const calculateLength = useCallback((features: Feature[]) => {
+        return features.reduce((total, feature) => {
+            return total + length(feature, { units: 'kilometers' });
+        }, 0);
+    }, []);
+
+    const filteredData = useMemo(() => {
         if (!data || !Array.isArray(data) || data.length === 0 || !effectiveCurrentTime) {
-            return { filteredData: [], totalLength: 0 };
+            return [];
         }
 
-        const filtered = data.filter((item) => {
-            const startStr = item.properties?.[options.fieldConfig.startField];
+        return data.filter((item) => {
+            const start = parseDate(item.properties?.[options.fieldConfig.startField]);
+            if (!start) return false;
+
             const endStr = item.properties?.[options.fieldConfig.endField];
-
-            if (!startStr) return false;
-
-            const start = new Date(startStr);
-            if (isNaN(start.getTime())) return false;
-
             const end = endStr === options.fieldConfig.endFieldIndicator
                 ? new Date()
-                : endStr ? new Date(endStr) : new Date();
+                : parseDate(endStr) || new Date();
 
-            if (isNaN(end.getTime())) return false;
+            if (!isValidDate(end)) return false;
 
             return effectiveCurrentTime >= start && effectiveCurrentTime <= end;
         });
-
-        // Calculate total length using Turf.js
-        const totalKm = filtered.reduce((total, feature) => {
-            return total + length(feature, { units: 'kilometers' });
-        }, 0);
-
-        return { filteredData: filtered, totalLength: Math.round(totalKm) };
     }, [data, effectiveCurrentTime, options.fieldConfig]);
+
+    const totalLength = useMemo(() => {
+        return Math.round(calculateLength(filteredData));
+    }, [filteredData, calculateLength]);
 
     const togglePlay = () => {
         setIsPlaying(!isPlaying);

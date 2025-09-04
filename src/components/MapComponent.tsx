@@ -1,4 +1,4 @@
-import { type FC, useState, useMemo } from 'react'
+import { type FC, useState, useMemo, memo } from 'react'
 import Map from 'react-map-gl/maplibre'
 import { Source, Layer } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -9,11 +9,7 @@ import { useTimeFilter } from '../hooks/useTimeFilter'
 import TimeSlider from './TimeSlider'
 import { RAILWAY_TIME_CONFIG } from '../config/timeConfigs'
 
-interface MapComponentProps {
-    className?: string
-}
-
-const MapComponent: FC<MapComponentProps> = ({ className = "h-full w-full" }) => {
+const MapComponent: FC = () => {
     const { data: geojsonData, loading, error } = useGeoJSON('/geo/historische_spoorwegen.json');
     const [mapLoaded, setMapLoaded] = useState(false);
 
@@ -38,7 +34,7 @@ const MapComponent: FC<MapComponentProps> = ({ className = "h-full w-full" }) =>
     if (error) return <div>Error: {error.message}</div>;
 
     return (
-        <div className={`${className} relative`}>
+        <div className="h-full w-full relative">
             <Map
                 initialViewState={MAP_CONFIG.initialViewState}
                 mapStyle={MAP_CONFIG.mapStyle}
@@ -70,4 +66,4 @@ const MapComponent: FC<MapComponentProps> = ({ className = "h-full w-full" }) =>
     )
 }
 
-export default MapComponent
+export default memo(MapComponent)

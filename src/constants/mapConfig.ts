@@ -5,7 +5,16 @@ export const MAP_CONFIG = {
         zoom: 6.55
     },
     mapStyle: 'https://tiles.openfreemap.org/styles/positron'
-} as const;
+} as const satisfies {
+    initialViewState: {
+        longitude: number;
+        latitude: number;
+        zoom: number;
+    };
+    mapStyle: string;
+};
+
+type LayerType = 'line' | 'fill' | 'circle';
 
 export const GEOJSON_LAYER_CONFIGS = {
     line: {
@@ -33,4 +42,8 @@ export const GEOJSON_LAYER_CONFIGS = {
             'circle-radius': 5
         }
     }
-} as const;
+} as const satisfies Record<LayerType, {
+    id: string;
+    type: LayerType;
+    paint: Record<string, unknown>;
+}>;

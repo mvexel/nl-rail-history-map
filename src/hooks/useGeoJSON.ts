@@ -1,33 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { use, useMemo } from 'react';
 import type { FeatureCollection } from 'geojson';
 import { loadGeoJSON } from '../utils';
 
+const promiseCache = new Map<string, Promise<FeatureCollection>>();
+
 export function useGeoJSON(path: string) {
-    const [data, setData] = useState<FeatureCollection | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<Error | null>(null);
-    const hasFetched = useRef(false);
-
-    useEffect(() => {
-        if (hasFetched.current) return;
-        hasFetched.current = true;
-
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const result = await loadGeoJSON(path);
-                setData(result);
-            } catch (err) {
-                setError(err as Error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (path) {
-            fetchData();
+    const promise = useMemo(() => {
+        if (!promiseCache.has(path)) {
+            const basePromise = loadGeoJSON(path);
+            const errorHandledPromise = basePromise.catch(error => {
+                throw error;
+            });
+            promiseCache.set(path, errorHandledPromise);
         }
+        return promiseCache.get(path)!;
     }, [path]);
 
-    return { data, loading, error };
+    const data = use(promise);
+    return { data, loading: false, error: null };
 }

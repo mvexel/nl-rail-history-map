@@ -39,7 +39,8 @@ export async function loadGeoJSON(path: string): Promise<FeatureCollection> {
         // Convert coordinates in features
         data.features.forEach((feature: Feature) => {
             if (feature.geometry && 'coordinates' in feature.geometry) {
-                (feature.geometry as any).coordinates = convertCoordinates((feature.geometry as any).coordinates);
+                const geometry = feature.geometry as { coordinates: unknown };
+                geometry.coordinates = convertCoordinates(geometry.coordinates);
             }
         });
 

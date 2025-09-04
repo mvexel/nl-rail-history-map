@@ -1,4 +1,5 @@
-import { type FC } from 'react';
+import { type FC, memo, useMemo } from 'react';
+import { formatDate, clampDate } from '../utils';
 
 interface TimeSliderProps {
     currentTime: Date;
@@ -32,17 +33,15 @@ const TimeSlider: FC<TimeSliderProps> = ({
     config,
     locale = 'nl-NL'
 }) => {
-    // Ensure currentTime is within the valid range
-    const validMinTime = Math.min(minDate.getTime(), maxDate.getTime());
-    const validMaxTime = Math.max(minDate.getTime(), maxDate.getTime());
-    const clampedCurrentTime = new Date(Math.max(validMinTime, Math.min(validMaxTime, currentTime.getTime())));
-    const formatDate = (date: Date) => {
-        return date.toLocaleDateString(locale, {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    };
+    const clampedCurrentTime = useMemo(() => 
+        clampDate(currentTime, minDate, maxDate), 
+        [currentTime, minDate, maxDate]
+    );
+
+    const formattedDate = useMemo(() => 
+        formatDate(clampedCurrentTime, locale), 
+        [clampedCurrentTime, locale]
+    );
 
     const interpolateStatus = (template: string, count: number, date: string, lengthKm?: number) => {
         return template
@@ -63,8 +62,8 @@ const TimeSlider: FC<TimeSliderProps> = ({
                 <span className="text-sm font-medium text-gray-700 min-w-[60px]">{config.yearLabel}</span>
                 <input
                     type="range"
-                    min={Math.min(minDate.getTime(), maxDate.getTime())}
-                    max={Math.max(minDate.getTime(), maxDate.getTime())}
+                    min={minDate.getTime()}
+                    max={maxDate.getTime()}
                     value={clampedCurrentTime.getTime()}
                     onChange={(e) => onTimeChange(new Date(parseInt(e.target.value)))}
                     className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
@@ -89,7 +88,7 @@ const TimeSlider: FC<TimeSliderProps> = ({
                 </span>
             </div>
             <div className="mt-2 text-xs text-gray-500">
-                {interpolateStatus(config.statusTemplate, itemCount, formatDate(clampedCurrentTime), totalLength)}
+                {interpolateStatus(config.statusTemplate, itemCount, formattedDate, totalLength)}
             </div>
             <div className="mt-3 text-xs text-gray-400 text-center">
                 <span>Gemaakt door </span>
@@ -113,4 +112,4 @@ const TimeSlider: FC<TimeSliderProps> = ({
     );
 };
 
-export default TimeSlider;
+export default memo(TimeSlider);
