@@ -1,7 +1,7 @@
 export const MAP_CONFIG = {
     initialViewState: {
         longitude: 5.2913,
-        latitude: 51.8326,
+        latitude: 51.7026,
         zoom: 6.55
     },
     mapStyle: 'https://tiles.openfreemap.org/styles/positron'
