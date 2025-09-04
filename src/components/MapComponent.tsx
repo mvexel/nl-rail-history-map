@@ -2,6 +2,7 @@ import { type FC, useState, useMemo } from 'react'
 import Map from 'react-map-gl/maplibre'
 import { Source, Layer } from 'react-map-gl/maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
+import type { FeatureCollection } from 'geojson'
 import { MAP_CONFIG, GEOJSON_LAYER_CONFIGS } from '../constants'
 import { useGeoJSON } from '../hooks'
 import { useTimeFilter } from '../hooks/useTimeFilter'
@@ -22,17 +23,18 @@ const MapComponent: FC<MapComponentProps> = ({ className = "h-full w-full" }) =>
         minDate,
         maxDate,
         filteredData,
+        totalLength,
         togglePlay,
         handleTimeChange,
         config
-    } = useTimeFilter((geojsonData as any)?.features, RAILWAY_TIME_CONFIG);
+    } = useTimeFilter(geojsonData?.features || null, RAILWAY_TIME_CONFIG);
 
-    const filteredGeoJSON = useMemo(() => ({
+    const filteredGeoJSON: FeatureCollection = useMemo(() => ({
         type: 'FeatureCollection',
         features: filteredData || []
     }), [filteredData]);
 
-    if (loading) return <div>Loading...</div>;
+    if (loading) return <div>Bezig...</div>;
     if (error) return <div>Error: {error.message}</div>;
 
     return (
@@ -46,7 +48,7 @@ const MapComponent: FC<MapComponentProps> = ({ className = "h-full w-full" }) =>
                     <Source
                         id="geojson-source"
                         type="geojson"
-                        data={filteredGeoJSON as any}
+                        data={filteredGeoJSON}
                     >
                         <Layer {...GEOJSON_LAYER_CONFIGS.line} />
                     </Source>
@@ -59,6 +61,7 @@ const MapComponent: FC<MapComponentProps> = ({ className = "h-full w-full" }) =>
                 minDate={minDate}
                 maxDate={maxDate}
                 itemCount={filteredData.length}
+                totalLength={totalLength}
                 onTimeChange={handleTimeChange}
                 onTogglePlay={togglePlay}
                 config={config}

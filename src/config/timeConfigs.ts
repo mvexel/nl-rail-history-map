@@ -11,7 +11,7 @@ export const RAILWAY_TIME_CONFIG: TimeFilterOptions = {
         yearLabel: 'Jaar:',
         playTooltip: 'Animatie afspelen',
         pauseTooltip: 'Animatie pauzeren',
-        statusTemplate: 'Je ziet {count} spoorlijnen die op {date} in gebruik waren',
+        statusTemplate: 'Je ziet {count} spoorlijnen die op {date} in gebruik waren. De lengte van het netwerk was {length_km} kilometer.',
         presentLabel: 'Heden',
         loadingText: 'Kaart laden...',
         errorText: 'Fout bij laden GeoJSON: {error}'

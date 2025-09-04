@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import type { Feature } from 'geojson';
+import { length } from '@turf/length';
 
 export interface TimeFieldConfig {
     startField: string;
@@ -22,8 +24,8 @@ export interface TimeFilterOptions {
     sliderConfig: TimeSliderConfig;
 }
 
-export function useTimeFilter<T extends Record<string, any>>(
-    data: T[] | null,
+export function useTimeFilter(
+    data: Feature[] | null,
     options: TimeFilterOptions
 ) {
     const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -39,7 +41,7 @@ export function useTimeFilter<T extends Record<string, any>>(
         let max = new Date('1800-01-01');
 
         data.forEach((item) => {
-            const startStr = item.properties[options.fieldConfig.startField];
+            const startStr = item.properties?.[options.fieldConfig.startField];
             if (startStr) {
                 const startDate = new Date(startStr);
                 if (!isNaN(startDate.getTime())) {
@@ -93,14 +95,14 @@ export function useTimeFilter<T extends Record<string, any>>(
         };
     }, [isPlaying, maxDate, effectiveCurrentTime, minDate]);
 
-    const filteredData = useMemo(() => {
+    const { filteredData, totalLength } = useMemo(() => {
         if (!data || !Array.isArray(data) || data.length === 0 || !effectiveCurrentTime) {
-            return [];
+            return { filteredData: [], totalLength: 0 };
         }
 
-        return data.filter((item) => {
-            const startStr = item.properties[options.fieldConfig.startField];
-            const endStr = item.properties[options.fieldConfig.endField];
+        const filtered = data.filter((item) => {
+            const startStr = item.properties?.[options.fieldConfig.startField];
+            const endStr = item.properties?.[options.fieldConfig.endField];
 
             if (!startStr) return false;
 
@@ -115,6 +117,13 @@ export function useTimeFilter<T extends Record<string, any>>(
 
             return effectiveCurrentTime >= start && effectiveCurrentTime <= end;
         });
+
+        // Calculate total length using Turf.js
+        const totalKm = filtered.reduce((total, feature) => {
+            return total + length(feature, { units: 'kilometers' });
+        }, 0);
+
+        return { filteredData: filtered, totalLength: Math.round(totalKm) };
     }, [data, effectiveCurrentTime, options.fieldConfig]);
 
     const togglePlay = () => {
@@ -132,6 +141,7 @@ export function useTimeFilter<T extends Record<string, any>>(
         minDate: minDate || new Date(),
         maxDate: maxDate || new Date(),
         filteredData,
+        totalLength,
         togglePlay,
         handleTimeChange,
         config: options.sliderConfig

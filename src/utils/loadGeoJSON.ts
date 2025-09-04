@@ -1,19 +1,20 @@
 import proj4 from 'proj4';
+import type { FeatureCollection, Feature } from 'geojson';
 
 /**
  * Utility function to load GeoJSON data from a given path.
  * Converts coordinates from EPSG:28992 (Dutch RD) to WGS84 if needed.
  * @param path - The path to the GeoJSON file (relative to public or absolute URL).
- * @returns Promise resolving to the GeoJSON object.
+ * @returns Promise resolving to the GeoJSON FeatureCollection.
  */
-export async function loadGeoJSON(path: string): Promise<unknown> {
+export async function loadGeoJSON(path: string): Promise<FeatureCollection> {
     try {
         console.log('Loading GeoJSON from:', path);
         const response = await fetch(path);
         if (!response.ok) {
             throw new Error(`Failed to load GeoJSON: ${response.statusText}`);
         }
-        const data = await response.json();
+        const data: FeatureCollection = await response.json();
         console.log('Loaded GeoJSON data:', data);
 
         // Define projections
@@ -36,13 +37,11 @@ export async function loadGeoJSON(path: string): Promise<unknown> {
         }
 
         // Convert coordinates in features
-        if (data && typeof data === 'object' && 'features' in data && Array.isArray((data as any).features)) {
-            (data as any).features.forEach((feature: any) => {
-                if (feature && feature.geometry && feature.geometry.coordinates) {
-                    feature.geometry.coordinates = convertCoordinates(feature.geometry.coordinates);
-                }
-            });
-        }
+        data.features.forEach((feature: Feature) => {
+            if (feature.geometry && 'coordinates' in feature.geometry) {
+                (feature.geometry as any).coordinates = convertCoordinates((feature.geometry as any).coordinates);
+            }
+        });
 
         console.log('Converted GeoJSON data:', data);
         return data;

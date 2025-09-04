@@ -6,6 +6,7 @@ interface TimeSliderProps {
     minDate: Date;
     maxDate: Date;
     itemCount: number;
+    totalLength?: number;
     onTimeChange: (date: Date) => void;
     onTogglePlay: () => void;
     config: {
@@ -25,6 +26,7 @@ const TimeSlider: FC<TimeSliderProps> = ({
     minDate,
     maxDate,
     itemCount,
+    totalLength,
     onTimeChange,
     onTogglePlay,
     config,
@@ -42,10 +44,11 @@ const TimeSlider: FC<TimeSliderProps> = ({
         });
     };
 
-    const interpolateStatus = (template: string, count: number, date: string) => {
+    const interpolateStatus = (template: string, count: number, date: string, lengthKm?: number) => {
         return template
             .replace('{count}', count.toString())
-            .replace('{date}', date);
+            .replace('{date}', date)
+            .replace('{length_km}', lengthKm?.toLocaleString() || '0');
     };
 
     return (
@@ -86,7 +89,7 @@ const TimeSlider: FC<TimeSliderProps> = ({
                 </span>
             </div>
             <div className="mt-2 text-xs text-gray-500">
-                {interpolateStatus(config.statusTemplate, itemCount, formatDate(clampedCurrentTime))}
+                {interpolateStatus(config.statusTemplate, itemCount, formatDate(clampedCurrentTime), totalLength)}
             </div>
         </div>
     );

@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "npm run build && rsync -rv dist/ pgs.sh:/nlrailhist"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.12",
+    "@turf/length": "^7.2.0",
     "maplibre-gl": "^5.7.0",
     "proj4": "^2.19.10",
     "react": "^19.1.1",
@@ -20,6 +22,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
+    "@types/geojson": "^7946.0.16",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
