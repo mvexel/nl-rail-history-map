@@ -32,7 +32,7 @@ export function useTimeFilter<T extends Record<string, any>>(
 
     const { minDate, maxDate } = useMemo(() => {
         if (!data || !Array.isArray(data) || data.length === 0) {
-            return { minDate: new Date('1839-01-01'), maxDate: new Date() };
+            return { minDate: new Date('1950-01-01'), maxDate: new Date() };
         }
 
         let min = new Date();
