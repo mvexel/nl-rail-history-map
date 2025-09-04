@@ -6,3 +6,30 @@ export const MAP_CONFIG = {
     },
     mapStyle: 'https://tiles.openfreemap.org/styles/positron'
 } as const;
+
+export const GEOJSON_LAYER_CONFIGS = {
+    line: {
+        id: 'geojson-line-layer',
+        type: 'line' as const,
+        paint: {
+            'line-color': '#ff0000',
+            'line-width': 2
+        }
+    },
+    fill: {
+        id: 'geojson-fill-layer',
+        type: 'fill' as const,
+        paint: {
+            'fill-color': '#ff0000',
+            'fill-opacity': 0.5
+        }
+    },
+    circle: {
+        id: 'geojson-circle-layer',
+        type: 'circle' as const,
+        paint: {
+            'circle-color': '#ff0000',
+            'circle-radius': 5
+        }
+    }
+} as const;
