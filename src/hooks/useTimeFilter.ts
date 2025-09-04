@@ -47,7 +47,7 @@ export function useTimeFilter(
             return { minDate: new Date('1850-01-01'), maxDate: new Date() };
         }
 
-        const minDate = new Date(Math.min(...startDates.map(d => d.getTime())));
+        const minDate = new Date(Math.min(...startDates.map(d => d?.getTime() || 0)));
         const maxDate = new Date();
 
         return { minDate, maxDate };
