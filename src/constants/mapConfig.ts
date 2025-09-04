@@ -12,8 +12,9 @@ export const GEOJSON_LAYER_CONFIGS = {
         id: 'geojson-line-layer',
         type: 'line' as const,
         paint: {
-            'line-color': '#ff0000',
-            'line-width': 2
+            'line-color': '#dc2626',
+            'line-width': 3,
+            'line-opacity': 0.8
         }
     },
     fill: {

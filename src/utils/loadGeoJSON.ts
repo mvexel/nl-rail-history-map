@@ -6,7 +6,7 @@ import proj4 from 'proj4';
  * @param path - The path to the GeoJSON file (relative to public or absolute URL).
  * @returns Promise resolving to the GeoJSON object.
  */
-export async function loadGeoJSON(path: string): Promise<any> {
+export async function loadGeoJSON(path: string): Promise<unknown> {
     try {
         console.log('Loading GeoJSON from:', path);
         const response = await fetch(path);
@@ -21,7 +21,7 @@ export async function loadGeoJSON(path: string): Promise<any> {
         const wgs84Projection = 'EPSG:4326';
 
         // Function to convert coordinates recursively
-        function convertCoordinates(coords: any): any {
+        function convertCoordinates(coords: unknown): unknown {
             if (Array.isArray(coords)) {
                 if (coords.length === 2 && typeof coords[0] === 'number' && typeof coords[1] === 'number') {
                     // It's a point [x, y]
@@ -36,10 +36,10 @@ export async function loadGeoJSON(path: string): Promise<any> {
         }
 
         // Convert coordinates in features
-        if (data.features) {
-            data.features.forEach((feature: any) => {
-                if (feature.geometry && feature.geometry.coordinates) {
-                    feature.geometry.coordinates = convertCoordinates(feature.geometry.coordinates);
+        if (data && typeof data === 'object' && 'features' in data && Array.isArray(data.features)) {
+            data.features.forEach((feature: unknown) => {
+                if (feature && typeof feature === 'object' && 'geometry' in feature && feature.geometry && typeof feature.geometry === 'object' && 'coordinates' in feature.geometry) {
+                    (feature.geometry as { coordinates: unknown }).coordinates = convertCoordinates((feature.geometry as { coordinates: unknown }).coordinates);
                 }
             });
         }

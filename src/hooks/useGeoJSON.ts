@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { loadGeoJSON } from '../utils';
 
 export function useGeoJSON(path: string) {
-    const [data, setData] = useState<any>(null);
+    const [data, setData] = useState<unknown>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
     const hasFetched = useRef(false);
