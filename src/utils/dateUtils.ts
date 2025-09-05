@@ -20,21 +20,3 @@ export const formatDate = (date: Date, locale = 'nl-NL'): string => {
     });
 };
 
-export const getDateRange = (dates: (Date | null)[]): { min: Date; max: Date } => {
-    const validDates = dates.filter((d): d is Date => d !== null && isValidDate(d));
-    
-    if (validDates.length === 0) {
-        return { min: new Date('1850-01-01'), max: new Date() };
-    }
-
-    const minTime = Math.min(...validDates.map(d => d.getTime()));
-    const maxTime = Math.max(...validDates.map(d => d.getTime()));
-    
-    const now = new Date();
-    const cappedMaxTime = Math.min(maxTime, now.getTime());
-
-    return {
-        min: new Date(minTime),
-        max: new Date(cappedMaxTime)
-    };
-};

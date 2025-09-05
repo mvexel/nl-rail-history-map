@@ -29,7 +29,7 @@ const createTimeConfig = ({
         yearLabel: 'Jaar:',
         playTooltip: 'Animatie afspelen',
         pauseTooltip: 'Animatie pauzeren',
-        statusTemplate: showLength 
+        statusTemplate: showLength
             ? `Je ziet {count} ${itemNamePlural} die op {date} in gebruik waren. De lengte van het netwerk was {length_km} kilometer.`
             : `Toont {count} ${itemNamePlural} actief in {date}`,
         presentLabel: 'Heden',
@@ -46,20 +46,4 @@ export const RAILWAY_TIME_CONFIG = createTimeConfig({
     itemName: 'Kaart',
     itemNamePlural: 'spoorlijnen',
     showLength: true
-});
-
-export const MUSEUM_TIME_CONFIG = createTimeConfig({
-    title: 'Museum Tijdlijn',
-    startField: 'founding_date',
-    endField: 'closing_date',
-    itemName: 'Musea',
-    itemNamePlural: 'musea'
-});
-
-export const BUILDING_TIME_CONFIG = createTimeConfig({
-    title: 'Gebouw Tijdlijn',
-    startField: 'construction_start',
-    endField: 'demolition_date',
-    itemName: 'Gebouwen',
-    itemNamePlural: 'gebouwen'
 });
